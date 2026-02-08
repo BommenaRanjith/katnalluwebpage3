@@ -1,65 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Contribute</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<meta charset="UTF-8">
+<title>Contribute</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family:Arial; background:#fff3e0; }
+.card { width:420px; margin:40px auto; background:#fff; padding:20px; border-radius:16px; }
+img { width:100%; border-radius:12px; }
+.gift { display:flex; justify-content:space-between; margin:10px 0; }
+button { background:#ff9800; color:#fff; border:none; padding:6px 12px; border-radius:6px; }
+progress { width:100%; }
+</style>
 </head>
 
 <body>
-<div id="app"></div>
+<div class="card" id="app">Loading...</div>
 
 <script>
-const supabase = supabaseJs.createClient(
-  "https://jdzerwfsrctemjwxqru.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+const supabase = supabase.createClient(
+  "https://jdzerwfwrsctemjwxqru.supabase.co",
+  "PASTE_YOUR_PUBLISHABLE_KEY_HERE"
 );
 
-
-const eventId = new URLSearchParams(location.search).get("event_id");
+const id = new URLSearchParams(location.search).get("id");
 
 async function load(){
-  const { data: event } = await supabase
-    .from("events")
+  const { data: celebration } = await supabase
+    .from("celebrations")
     .select("*")
-    .eq("id", eventId)
+    .eq("id", id)
     .single();
 
   const { data: gifts } = await supabase
     .from("gifts")
     .select("*")
-    .eq("event_id", eventId);
+    .eq("celebration_id", id);
 
-  app.innerHTML = `
-    <h2>${event.occasion}</h2>
-    <p>${event.event_date}</p>
-    <img src="${event.photo_url}" width="100%"/>
-
-    ${gifts.map(g => `
-      <div>
-        <h4>${g.name} – ₹${g.amount}</h4>
-        <input placeholder="Your Name" id="n-${g.id}">
-        <input placeholder="Message" id="m-${g.id}">
-        <input type="number" value="${g.amount}" id="a-${g.id}">
-        <button onclick="pay('${g.id}')">Contribute</button>
-      </div>
-    `).join("")}
+  let html = `
+    <h2>${celebration.occasion}</h2>
+    <p>${celebration.event_date}</p>
+    <img src="${celebration.image_url}">
   `;
+
+  gifts.forEach(g=>{
+    html += `
+      <div class="gift">
+        <div>
+          <b>${g.name}</b><br>
+          ₹${g.collected || 0} / ₹${g.amount}
+          <progress value="${g.collected || 0}" max="${g.amount}"></progress>
+        </div>
+        <button onclick="pay('${celebration.upi}',${g.amount})">Contribute</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("app").innerHTML = html;
 }
 
-async function pay(giftId){
-  const name = document.getElementById(`n-${giftId}`).value;
-  const msg = document.getElementById(`m-${giftId}`).value;
-  const amt = document.getElementById(`a-${giftId}`).value;
-
-  await supabase.from("contributions").insert([{
-    gift_id: giftId,
-    contributor_name: name,
-    message: msg,
-    amount: amt
-  }]);
-
-  location.href = `upi://pay?pa=${event.upi}&am=${amt}&cu=INR`;
+function pay(upi, amount){
+  location.href = `upi://pay?pa=${upi}&am=${amount}&cu=INR`;
 }
 
 load();
