@@ -3,67 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <title>Contribute</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body { font-family:Arial; background:#fff3e0; }
-.card { width:420px; margin:40px auto; background:#fff; padding:20px; border-radius:16px; }
-img { width:100%; border-radius:12px; }
-.gift { display:flex; justify-content:space-between; margin:10px 0; }
-button { background:#ff9800; color:#fff; border:none; padding:6px 12px; border-radius:6px; }
-progress { width:100%; }
+body {
+  font-family: Arial;
+  background: #fff3e6;
+  padding: 20px;
+}
+.card {
+  max-width: 420px;
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin: auto;
+}
+.gift {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+button {
+  background: orange;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: white;
+}
 </style>
 </head>
 
 <body>
-<div class="card" id="app">Loading...</div>
+<div class="card" id="content"></div>
 
 <script>
-const supabase = supabase.createClient(
-  "https://jdzerwfwrsctemjwxqru.supabase.co",
-  "PASTE_YOUR_PUBLISHABLE_KEY_HERE"
-);
+const params = new URLSearchParams(window.location.search);
+const raw = params.get("data");
 
-const id = new URLSearchParams(location.search).get("id");
-
-async function load(){
-  const { data: celebration } = await supabase
-    .from("celebrations")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  const { data: gifts } = await supabase
-    .from("gifts")
-    .select("*")
-    .eq("celebration_id", id);
-
+if (!raw) {
+  document.body.innerHTML = "Invalid link";
+} else {
+  const data = JSON.parse(decodeURIComponent(raw));
   let html = `
-    <h2>${celebration.occasion}</h2>
-    <p>${celebration.event_date}</p>
-    <img src="${celebration.image_url}">
+    <h2>${data.occasion}</h2>
+    <p>Date: ${data.date}</p>
+    <p>UPI: ${data.upi}</p>
+    <hr>
   `;
 
-  gifts.forEach(g=>{
+  data.gifts.forEach(g => {
     html += `
       <div class="gift">
-        <div>
-          <b>${g.name}</b><br>
-          ₹${g.collected || 0} / ₹${g.amount}
-          <progress value="${g.collected || 0}" max="${g.amount}"></progress>
-        </div>
-        <button onclick="pay('${celebration.upi}',${g.amount})">Contribute</button>
+        <div>${g.name} – ₹${g.amount}</div>
+        <button onclick="pay('${data.upi}',${g.amount})">Contribute</button>
       </div>
     `;
   });
 
-  document.getElementById("app").innerHTML = html;
+  document.getElementById("content").innerHTML = html;
 }
 
-function pay(upi, amount){
-  location.href = `upi://pay?pa=${upi}&am=${amount}&cu=INR`;
+function pay(upi, amount) {
+  const url = `upi://pay?pa=${upi}&am=${amount}&cu=INR`;
+  window.location.href = url;
 }
-
-load();
 </script>
 </body>
 </html>
