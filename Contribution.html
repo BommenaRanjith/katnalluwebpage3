@@ -1,79 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Katnallu – Contribute ❤️</title>
+  <title>Contribute</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <style>
-    body {
-      font-family: Arial;
-      background: linear-gradient(135deg,#fff2cc,#ffe6d5);
-      display:flex;
-      justify-content:center;
-      padding:20px;
-    }
-    .card {
-      background:#fff;
-      max-width:520px;
-      width:100%;
-      padding:24px;
-      border-radius:22px;
-      box-shadow:0 20px 40px rgba(0,0,0,.15);
-    }
-    img {
-      width:100%;
-      border-radius:16px;
-      margin-bottom:16px;
-    }
-    .gift {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      background:#f9f9f9;
-      padding:14px;
-      border-radius:14px;
-      margin-bottom:10px;
-    }
-    button {
-      background:#ff9800;
-      border:none;
-      padding:10px 14px;
-      border-radius:12px;
-      color:#fff;
-      cursor:pointer;
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
 <body>
-<div class="card" id="app"></div>
+<div id="app"></div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const data = JSON.parse(decodeURIComponent(params.get("data")));
+const supabase = supabaseJs.createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_ANON_KEY"
+);
 
-document.getElementById("app").innerHTML = `
-  <h2>🎉 ${data.occasion}</h2>
-  <p>📅 ${data.date}</p>
-  <img src="${data.photo}" />
+const eventId = new URLSearchParams(location.search).get("event_id");
 
-  ${data.gifts.map(g => `
-    <div class="gift">
+async function load(){
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
+  const { data: gifts } = await supabase
+    .from("gifts")
+    .select("*")
+    .eq("event_id", eventId);
+
+  app.innerHTML = `
+    <h2>${event.occasion}</h2>
+    <p>${event.event_date}</p>
+    <img src="${event.photo_url}" width="100%"/>
+
+    ${gifts.map(g => `
       <div>
-        <b>${g.name}</b><br/>₹ ${g.amount}
+        <h4>${g.name} – ₹${g.amount}</h4>
+        <input placeholder="Your Name" id="n-${g.id}">
+        <input placeholder="Message" id="m-${g.id}">
+        <input type="number" value="${g.amount}" id="a-${g.id}">
+        <button onclick="pay('${g.id}')">Contribute</button>
       </div>
-      <button onclick="pay('${g.name}','${g.amount}')">Contribute 🎁</button>
-    </div>
-  `).join("")}
-
-  <p style="text-align:center">Thank you for celebrating ❤️</p>
-`;
-
-function pay(name, amount) {
-  window.location.href =
-    `upi://pay?pa=${data.upi}&pn=Katnallu&am=${amount}&cu=INR&tn=${encodeURIComponent(data.occasion+" - "+name)}`;
+    `).join("")}
+  `;
 }
-</script>
 
+async function pay(giftId){
+  const name = document.getElementById(`n-${giftId}`).value;
+  const msg = document.getElementById(`m-${giftId}`).value;
+  const amt = document.getElementById(`a-${giftId}`).value;
+
+  await supabase.from("contributions").insert([{
+    gift_id: giftId,
+    contributor_name: name,
+    message: msg,
+    amount: amt
+  }]);
+
+  location.href = `upi://pay?pa=${event.upi}&am=${amt}&cu=INR`;
+}
+
+load();
+</script>
 </body>
 </html>
