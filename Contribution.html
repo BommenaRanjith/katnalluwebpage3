@@ -1,71 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Contribute</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body {
-  font-family: Arial;
-  background: #fff3e6;
-  padding: 20px;
-}
-.card {
-  max-width: 420px;
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  margin: auto;
-}
-.gift {
-  display: flex;
-  justify-content: space-between;
-  margin: 10px 0;
-}
-button {
-  background: orange;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: white;
-}
-</style>
-</head>
+  <meta charset="UTF-8">
+  <title>Contribute</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff3e6;
+      padding: 20px;
+    }
+
+    .card {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #ff4081;
+    }
+
+    .gift {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      background: orange;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .meta {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #555;
+    }
+  </style>
+</head>
 <body>
-<div class="card" id="content"></div>
+
+<div class="card">
+  <h1>🎉 Celebration</h1>
+
+  <div class="meta" id="occasion"></div>
+  <div class="meta" id="date"></div>
+
+  <h3>🎁 Gifts</h3>
+  <div id="giftList"></div>
+</div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const raw = params.get("data");
+  function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  }
 
-if (!raw) {
-  document.body.innerHTML = "Invalid link";
-} else {
-  const data = JSON.parse(decodeURIComponent(raw));
-  let html = `
-    <h2>${data.occasion}</h2>
-    <p>Date: ${data.date}</p>
-    <p>UPI: ${data.upi}</p>
-    <hr>
-  `;
+  const rawData = getQueryParam("data");
 
-  data.gifts.forEach(g => {
-    html += `
-      <div class="gift">
-        <div>${g.name} – ₹${g.amount}</div>
-        <button onclick="pay('${data.upi}',${g.amount})">Contribute</button>
+  if (!rawData) {
+    document.body.innerHTML = "<h2 style='text-align:center'>Invalid link</h2>";
+    throw new Error("No data param");
+  }
+
+  let data;
+
+  try {
+    data = JSON.parse(decodeURIComponent(rawData));
+  } catch (e) {
+    document.body.innerHTML = "<h2 style='text-align:center'>Broken link data</h2>";
+    throw e;
+  }
+
+  document.getElementById("occasion").innerText = "🎊 " + data.occasion;
+  document.getElementById("date").innerText = "📅 " + data.date;
+
+  const giftList = document.getElementById("giftList");
+
+  data.gifts.forEach(gift => {
+    const div = document.createElement("div");
+    div.className = "gift";
+
+    div.innerHTML = `
+      <div>
+        <strong>${gift.name}</strong><br>
+        ₹ ${gift.amount}
       </div>
+      <button class="btn">Contribute</button>
     `;
+
+    div.querySelector("button").onclick = () => {
+      const upiLink = `upi://pay?pa=${data.upi}&pn=Celebration&am=${gift.amount}&cu=INR`;
+      window.location.href = upiLink;
+    };
+
+    giftList.appendChild(div);
   });
-
-  document.getElementById("content").innerHTML = html;
-}
-
-function pay(upi, amount) {
-  const url = `upi://pay?pa=${upi}&am=${amount}&cu=INR`;
-  window.location.href = url;
-}
 </script>
+
 </body>
 </html>
